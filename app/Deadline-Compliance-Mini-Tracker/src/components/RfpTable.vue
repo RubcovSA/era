@@ -92,11 +92,12 @@ function location(item) {
         <p class="eyebrow">Deadline radar</p>
         <h2>Competitive bidding windows at a glance</h2>
         <p class="sub">
-          {{ loading ? 'Fetching latest filings...' : 'Sorted newest to oldest' }}
+          {{ loading ? 'Fetching latest filings...' : `Sorted newest to oldest • ${total} visible` }}
         </p>
       </div>
       <div class="actions">
-        <button class="ghost" :disabled="loading" @click="emit('refresh')">
+        <span class="pill soft">Live USAC data</span>
+        <button class="btn ghost" :disabled="loading" @click="emit('refresh')">
           Refresh
         </button>
       </div>
@@ -109,7 +110,7 @@ function location(item) {
 
     <div v-else-if="errorMessage" class="error">
       <p>{{ errorMessage }}</p>
-      <button class="primary" @click="emit('refresh')">Try again</button>
+      <button class="btn primary" @click="emit('refresh')">Try again</button>
     </div>
 
     <div v-else-if="!hasResults" class="empty">
@@ -209,7 +210,7 @@ function location(item) {
               <span v-else class="muted">—</span>
             </td>
             <td>
-              <button class="ghost small" @click="emit('select', item)">
+              <button class="btn ghost small" @click="emit('select', item)">
                 {{ props.selectedId === item.id ? 'Selected' : 'View' }}
               </button>
             </td>
@@ -231,11 +232,11 @@ function location(item) {
               <option :value="100">100</option>
             </select>
           </label>
-          <button class="ghost small" :disabled="page <= 1" @click="emit('page-change', page - 1)">
+          <button class="btn ghost small" :disabled="page <= 1" @click="emit('page-change', page - 1)">
             Prev
           </button>
           <button
-            class="ghost small"
+            class="btn ghost small"
             :disabled="page >= pageCount"
             @click="emit('page-change', page + 1)"
           >
@@ -250,6 +251,9 @@ function location(item) {
 <style scoped>
 .table-wrap {
   padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .table-header {
@@ -269,30 +273,31 @@ function location(item) {
   color: #475569;
 }
 
-.actions button {
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
-  font-weight: 600;
-  cursor: pointer;
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .table-scroller {
   overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 14px;
 }
 
 th,
 td {
-  padding: 10px 8px;
+  padding: 12px 10px;
   text-align: left;
-  border-bottom: 1px solid #e2e8f0;
   vertical-align: top;
 }
 
@@ -301,8 +306,11 @@ th {
   top: 0;
   background: #f8fafc;
   z-index: 1;
-  font-size: 13px;
+  font-size: 12px;
   color: #475569;
+  border-bottom: 1px solid #e2e8f0;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 tbody tr:hover {
@@ -326,14 +334,6 @@ tbody tr.overdue {
   padding: 12px;
 }
 
-.error button,
-.actions button.primary,
-button.primary {
-  background: #2563eb;
-  color: #fff;
-  border: 1px solid #1d4ed8;
-}
-
 .empty .hint {
   color: #475569;
   margin-left: 8px;
@@ -347,12 +347,18 @@ button.primary {
   background: #fff;
   cursor: pointer;
   font-size: 18px;
+  transition: transform 120ms ease, box-shadow 120ms ease;
 }
 
 .icon-btn[aria-pressed='true'] {
   color: #f59e0b;
   border-color: #fcd34d;
   background: #fffbeb;
+}
+
+.icon-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
 }
 
 .strong {
@@ -384,26 +390,23 @@ button.primary {
   align-items: center;
   justify-content: center;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid #e2e8f0;
   font-weight: 700;
   color: #0f172a;
-  background: #fff;
+  background: #f8fafc;
 }
 
 tr.selected {
-  outline: 2px solid #2563eb;
+  outline: 2px solid #6366f1;
   outline-offset: -2px;
   background: #eef2ff;
 }
 
-button.small {
+.btn.small {
   padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
-  font-weight: 600;
-  cursor: pointer;
+  border-radius: 10px;
+  font-size: 13px;
 }
 
 .pager {

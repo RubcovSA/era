@@ -60,6 +60,14 @@ const derivedStats = computed(() => ({
   newThisWeek: counts.value.newThisWeek,
 }));
 
+const heroStats = computed(() => [
+  { label: 'Visible now', value: derivedStats.value.visible, hint: 'After filters', tone: 'primary' },
+  { label: 'Closing ≤ 10d', value: derivedStats.value.closingSoon, hint: 'High urgency', tone: 'warn' },
+  { label: 'Past due', value: derivedStats.value.overdue, hint: 'Missed 28-day window', tone: 'danger' },
+  { label: 'New this week', value: derivedStats.value.newThisWeek, hint: 'Fresh filings', tone: 'accent' },
+  { label: 'Saved locally', value: derivedStats.value.saved, hint: 'Your watchlist', tone: 'success' },
+]);
+
 const visibleItems = computed(() => {
   const query = (filters.value.search || '').toLowerCase();
   return items.value
@@ -274,160 +282,259 @@ function normalizeRecord(raw) {
 
 <template>
   <div class="page">
-    <header class="hero card">
-      <div class="hero-content">
-        <p class="eyebrow">E-Rate • Deadline compliance</p>
-        <h1>Stay inside the 28-day window</h1>
-        <p class="lede">
-          Browser-only Vue app that pulls USAC open data, flags closing windows,
-          and lets you keep a local watchlist.
-        </p>
-        <div class="meta">
-          <span class="pill new">Client-side only</span>
-          <span class="pill new">USAC Open Data</span>
-          <span class="pill soon">Local storage</span>
+    <section class="hero card">
+      <div class="hero-main">
+        <div class="hero-tags">
+          <span class="pill soft">E-Rate</span>
+          <span class="pill primary">Form 470</span>
+          <span class="pill success">Local watchlist</span>
         </div>
-        <p class="updated">Last refreshed: {{ formatTimestamp(lastUpdated) }}</p>
+        <h1>Deadline compliance cockpit</h1>
+        <p class="lede">
+          Monitor competitive bidding windows, spot late filings, and keep a private shortlist before the 28-day clock runs out.
+        </p>
+        <div class="hero-actions">
+          <div class="hero-buttons">
+            <button type="button" class="btn primary" :disabled="loading" @click="loadData">
+              {{ loading ? 'Refreshing…' : 'Refresh feed' }}
+            </button>
+            <button
+              type="button"
+              class="btn ghost"
+              :aria-pressed="filters.showSavedOnly"
+              @click="toggleSavedOnly(!filters.showSavedOnly)"
+            >
+              {{ filters.showSavedOnly ? 'Show everything' : 'Saved only' }}
+            </button>
+          </div>
+          <p class="muted updated">Updated {{ formatTimestamp(lastUpdated) }}</p>
+        </div>
       </div>
       <div class="hero-stats">
-        <div class="stat">
-          <p class="stat-label">Visible now</p>
-          <p class="stat-value">{{ derivedStats.visible }}</p>
-          <p class="stat-sub">After filters</p>
-        </div>
-        <div class="stat">
-          <p class="stat-label">Closing ≤ 10d</p>
-          <p class="stat-value">{{ derivedStats.closingSoon }}</p>
-          <p class="stat-sub">Urgent</p>
-        </div>
-        <div class="stat">
-          <p class="stat-label">Past due</p>
-          <p class="stat-value warn">{{ derivedStats.overdue }}</p>
-          <p class="stat-sub">Missed windows</p>
-        </div>
-        <div class="stat">
-          <p class="stat-label">New this week</p>
-          <p class="stat-value">{{ derivedStats.newThisWeek }}</p>
-          <p class="stat-sub">Fresh filings</p>
-        </div>
-        <div class="stat">
-          <p class="stat-label">Saved locally</p>
-          <p class="stat-value">{{ derivedStats.saved }}</p>
-          <p class="stat-sub">Watchlist</p>
+        <div
+          v-for="stat in heroStats"
+          :key="stat.label"
+          class="stat-card"
+          :class="stat.tone"
+        >
+          <p class="stat-label">{{ stat.label }}</p>
+          <p class="stat-value">{{ stat.value }}</p>
+          <p class="stat-sub">{{ stat.hint }}</p>
         </div>
       </div>
-    </header>
+    </section>
 
-    <FiltersPanel
-      :filters="filters"
-      :loading="loading"
-      @apply="handleFiltersChange"
-      @toggle-saved="toggleSavedOnly"
-    />
+    <section class="pulse card">
+      <div class="pulse-item warn">
+        <div class="pill warn">Closing soon</div>
+        <p class="pulse-value">{{ counts.closingSoon }}</p>
+        <p class="pulse-label">Due within 10 days</p>
+      </div>
+      <div class="pulse-item danger">
+        <div class="pill danger">Past due</div>
+        <p class="pulse-value">{{ counts.overdue }}</p>
+        <p class="pulse-label">Needs follow-up</p>
+      </div>
+      <div class="pulse-item accent">
+        <div class="pill primary">Lookback window</div>
+        <p class="pulse-value">{{ filters.windowDays }}d</p>
+        <p class="pulse-label">Using USAC Form 470 dataset</p>
+      </div>
+      <div class="pulse-item success">
+        <div class="pill success">New this week</div>
+        <p class="pulse-value">{{ counts.newThisWeek }}</p>
+        <p class="pulse-label">Fresh filings to review</p>
+      </div>
+    </section>
 
-    <RfpTable
-      class="card"
-      :items="pagedItems"
-      :loading="loading"
-      :error-message="errorMessage"
-      :watchlist="watchlist"
-      :selected-id="selected?.id"
-      :page="page"
-      :page-count="pageCount"
-      :page-size="pageSize"
-      :total="derivedStats.visible"
-      @refresh="loadData"
-      @toggle-watch="toggleWatchlist"
-      @select="handleSelect"
-      @page-change="handlePageChange"
-      @page-size-change="handlePageSizeChange"
-    />
+    <div class="content-grid">
+      <FiltersPanel
+        :filters="filters"
+        :loading="loading"
+        @apply="handleFiltersChange"
+        @toggle-saved="toggleSavedOnly"
+      />
 
-    <RfpDetails v-if="selected" class="card detail-card" :item="selected" />
+      <div class="main-stack">
+        <RfpTable
+          class="card"
+          :items="pagedItems"
+          :loading="loading"
+          :error-message="errorMessage"
+          :watchlist="watchlist"
+          :selected-id="selected?.id"
+          :page="page"
+          :page-count="pageCount"
+          :page-size="pageSize"
+          :total="derivedStats.visible"
+          @refresh="loadData"
+          @toggle-watch="toggleWatchlist"
+          @select="handleSelect"
+          @page-change="handlePageChange"
+          @page-size-change="handlePageSizeChange"
+        />
+
+        <RfpDetails v-if="selected" class="card detail-card" :item="selected" />
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .hero {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 24px;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 18px;
   padding: 20px;
-  margin-bottom: 20px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(37, 99, 235, 0.08)),
+    var(--surface);
+  border: 1px solid rgba(99, 102, 241, 0.14);
 }
 
-.hero-content {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.hero-main h1 {
+  margin: 8px 0 4px;
+  font-size: 32px;
 }
 
-.hero h1 {
-  margin: 6px 0 2px;
-  font-size: 30px;
-}
-
-.hero .lede {
-  max-width: 680px;
-  color: #334155;
-  margin: 0 0 6px;
-}
-
-.updated {
-  color: #475569;
-  font-size: 13px;
-  margin: 6px 0 0;
-}
-
-.eyebrow {
-  font-weight: 600;
-  color: #2563eb;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 12px;
-  margin: 0;
-}
-
-.meta {
+.hero-tags {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
 
+.hero-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.updated {
+  margin: 0;
+  font-size: 13px;
+}
+
 .hero-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 10px;
 }
 
-.stat {
-  padding: 10px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #f8fafc;
+.stat-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  background: var(--surface);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
-.stat-label {
+.stat-card .stat-label {
   font-size: 12px;
-  color: #64748b;
+  color: #475569;
   margin: 0;
 }
 
-.stat-value {
-  font-size: 26px;
-  font-weight: 700;
-  color: #0f172a;
+.stat-card .stat-value {
   margin: 2px 0;
+  font-size: 28px;
+  font-weight: 800;
 }
 
-.stat-value.warn {
+.stat-card .stat-sub {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.stat-card.warn .stat-value {
+  color: #b45309;
+}
+
+.stat-card.danger .stat-value {
   color: #b91c1c;
 }
 
-.stat-sub {
+.stat-card.accent .stat-value {
+  color: #2563eb;
+}
+
+.stat-card.success .stat-value {
+  color: #15803d;
+}
+
+.pulse {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  padding: 14px;
+}
+
+.pulse-item {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  background: var(--surface-muted);
+}
+
+.pulse-item.warn {
+  background: #fff4e5;
+  border-color: #fed7aa;
+}
+
+.pulse-item.danger {
+  background: #ffe4e6;
+  border-color: #fecdd3;
+}
+
+.pulse-item.accent {
+  background: #eef2ff;
+  border-color: #e0e7ff;
+}
+
+.pulse-item.success {
+  background: #ecfdf3;
+  border-color: #bbf7d0;
+}
+
+.pulse-value {
+  margin: 4px 0;
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.pulse-label {
   margin: 0;
-  color: #64748b;
-  font-size: 12px;
+  color: #475569;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.main-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.detail-card {
+  padding: 16px;
+}
+
+@media (min-width: 1040px) {
+  .content-grid {
+    grid-template-columns: 380px 1fr;
+  }
 }
 
 @media (max-width: 960px) {
@@ -438,10 +545,5 @@ function normalizeRecord(raw) {
   .hero-stats {
     width: 100%;
   }
-}
-
-.detail-card {
-  margin-top: 16px;
-  padding: 16px;
 }
 </style>

@@ -107,9 +107,22 @@ const stateOptions = [
 
 <template>
   <section class="card panel">
-    <div class="panel-row">
+    <header class="panel-head">
+      <div>
+        <p class="eyebrow">Filters</p>
+        <h3>Shape the feed</h3>
+        <p class="hint">
+          Combine state, funding year, and service category to shrink results. Keywords match
+          applicant, city, and service notes.
+        </p>
+      </div>
+      <span class="pill">Local &amp; fast</span>
+    </header>
+
+    <div class="panel-grid">
       <div class="field">
         <label for="state">State</label>
+        <span class="field-help">Focus on a territory</span>
         <select
           id="state"
           v-model="localFilters.stateCode"
@@ -124,6 +137,7 @@ const stateOptions = [
 
       <div class="field">
         <label for="fundingYear">Funding year</label>
+        <span class="field-help">Current, next, or last</span>
         <select
           id="fundingYear"
           v-model="localFilters.fundingYear"
@@ -142,6 +156,7 @@ const stateOptions = [
 
       <div class="field">
         <label for="category">Category</label>
+        <span class="field-help">USAC service grouping</span>
         <select
           id="category"
           v-model="localFilters.serviceCategory"
@@ -157,21 +172,24 @@ const stateOptions = [
           </option>
         </select>
       </div>
+    </div>
 
+    <div class="panel-grid single">
       <div class="field search">
         <label for="search">Search text</label>
+        <span class="field-help">Applicant, city, service, or application #</span>
         <input
           id="search"
           v-model="localFilters.search"
           :disabled="loading"
           type="search"
-          placeholder="Applicant, city, service, application #"
+          placeholder="Lakeview Public Schools, fiber, AP managed..."
         />
       </div>
     </div>
 
-    <div class="panel-row controls">
-      <div class="toggle">
+    <div class="panel-footer">
+      <label class="switch">
         <input
           id="savedOnly"
           v-model="localFilters.showSavedOnly"
@@ -179,14 +197,15 @@ const stateOptions = [
           :disabled="loading"
           @change="() => emit('toggle-saved')"
         />
-        <label for="savedOnly">Show saved only</label>
-      </div>
+        <span class="switch-control" aria-hidden="true" />
+        <span class="switch-label">Show saved only</span>
+      </label>
 
       <div class="buttons">
-        <button type="button" class="ghost" :disabled="loading" @click="reset">
+        <button type="button" class="btn ghost" :disabled="loading" @click="reset">
           Reset
         </button>
-        <button type="button" class="primary" :disabled="loading" @click="submit">
+        <button type="button" class="btn primary" :disabled="loading" @click="submit">
           {{ loading ? 'Loading…' : 'Apply filters' }}
         </button>
       </div>
@@ -196,23 +215,40 @@ const stateOptions = [
 
 <style scoped>
 .panel {
-  padding: 14px 16px;
-  margin-bottom: 16px;
+  padding: 18px 18px 14px;
 }
 
-.panel-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-}
-
-.panel-row.controls {
+.panel-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 10px;
-  flex-wrap: wrap;
   gap: 12px;
+  margin-bottom: 12px;
+}
+
+.panel-head h3 {
+  margin: 6px 0 6px;
+  font-size: 20px;
+}
+
+.panel-head .hint {
+  margin: 0;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.panel-grid.single {
+  grid-template-columns: 1fr;
+  margin-top: 10px;
 }
 
 .field {
@@ -221,65 +257,76 @@ const stateOptions = [
   gap: 6px;
 }
 
-label {
-  font-weight: 600;
-  color: #0f172a;
-  font-size: 14px;
+.field-help {
+  font-size: 12px;
+  color: var(--muted);
 }
 
-input,
-select {
-  padding: 10px 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  font-size: 14px;
-  background: #fff;
-}
-
-input:disabled,
-select:disabled {
-  opacity: 0.7;
-  background: #f8fafc;
-}
-
-.search input {
-  width: 100%;
-}
-
-.toggle {
+.panel-footer {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 600;
+  justify-content: space-between;
+  margin-top: 12px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.switch input {
+  display: none;
+}
+
+.switch-control {
+  width: 46px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #e2e8f0;
+  position: relative;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.switch-control::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transition: transform 140ms ease;
+}
+
+.switch input:checked + .switch-control {
+  background: linear-gradient(135deg, var(--primary), #6366f1);
+  border-color: transparent;
+}
+
+.switch input:checked + .switch-control::after {
+  transform: translateX(18px);
+}
+
+.switch-label {
+  font-weight: 700;
 }
 
 .buttons {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
-button {
-  border-radius: 8px;
-  padding: 10px 14px;
-  border: 1px solid transparent;
-  cursor: pointer;
-  font-weight: 700;
-}
-
-button.ghost {
-  background: #fff;
-  border-color: #e2e8f0;
-  color: #0f172a;
-}
-
-button.primary {
-  background: #2563eb;
-  color: #fff;
-  border-color: #1d4ed8;
-}
-
-button:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
+.search input {
+  width: 100%;
 }
 </style>

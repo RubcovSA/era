@@ -17,6 +17,14 @@ const serviceRange = computed(() => {
   return '—';
 });
 
+const dueStatus = computed(() => {
+  if (props.item.daysRemaining == null) return { label: 'No due date', tone: '' };
+  if (props.item.daysRemaining < 0) return { label: 'Past due', tone: 'danger' };
+  if (props.item.daysRemaining <= 3) return { label: 'Critical', tone: 'danger' };
+  if (props.item.daysRemaining <= 10) return { label: 'Closing soon', tone: 'warn' };
+  return { label: 'On track', tone: 'success' };
+});
+
 function formatDate(date) {
   if (!date) return '—';
   const d = new Date(date);
@@ -53,12 +61,17 @@ function withProtocol(url) {
   <section class="detail">
     <header class="detail-header">
       <div>
-        <p class="eyebrow">Detail</p>
+        <p class="eyebrow">Procurement snapshot</p>
         <h2>{{ item.form_nickname || item.billed_entity_name || 'Form 470' }}</h2>
         <p class="sub">
           Application #{{ item.application_number || '—' }} · Funding Year
           {{ item.funding_year || '—' }} · {{ item.service_category || '—' }}
         </p>
+        <div class="tag-row">
+          <span class="pill" :class="dueStatus.tone">{{ dueStatus.label }}</span>
+          <span v-if="item.closingSoon" class="pill warn">Closing window</span>
+          <span v-if="item.isNew" class="pill new">New filing</span>
+        </div>
       </div>
       <div class="cta">
         <a v-if="item.form_pdf?.url" class="btn primary" :href="item.form_pdf.url" target="_blank" rel="noreferrer">
@@ -141,7 +154,7 @@ function withProtocol(url) {
 .detail {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .detail-header {
@@ -161,30 +174,17 @@ function withProtocol(url) {
   color: #475569;
 }
 
+.tag-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
 .cta {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-}
-
-.btn {
-  border-radius: 8px;
-  padding: 10px 12px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
-  font-weight: 700;
-  color: #0f172a;
-  text-decoration: none;
-}
-
-.btn.primary {
-  background: #2563eb;
-  border-color: #1d4ed8;
-  color: #fff;
-}
-
-.btn.ghost {
-  background: #fff;
 }
 
 .grid {
@@ -198,6 +198,7 @@ function withProtocol(url) {
   border-radius: 10px;
   padding: 12px;
   background: #f8fafc;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 h3 {

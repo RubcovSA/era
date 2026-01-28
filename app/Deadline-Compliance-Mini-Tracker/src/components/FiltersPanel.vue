@@ -144,22 +144,65 @@ const stateOptions = [
   <section class="card panel">
     <header class="panel-header">
       <div>
-        <p class="eyebrow">Filters</p>
-        <h2>Focus on the deadlines that matter</h2>
+        <p class="eyebrow">Filter runway</p>
+        <h2>Slice the Form 470 feed</h2>
         <p class="sub">
-          Pull recent certified filings, then layer urgency, saved items, and text
-          search.
+          Blend geography, categories, docs, and urgency to narrow the radar.
         </p>
       </div>
       <div class="buttons">
-        <button type="button" class="ghost" :disabled="loading" @click="reset">
+        <button type="button" class="btn ghost" :disabled="loading" @click="reset">
           Reset
         </button>
-        <button type="button" class="primary" :disabled="loading" @click="submit">
+        <button type="button" class="btn primary" :disabled="loading" @click="submit">
           {{ loading ? 'Loading…' : 'Apply filters' }}
         </button>
       </div>
     </header>
+
+    <div class="chip-row">
+      <label class="chip toggle">
+        <input
+          v-model="localFilters.showSavedOnly"
+          type="checkbox"
+          :disabled="loading"
+          @change="(event) => emit('toggle-saved', event.target.checked)"
+        />
+        <span>Saved only</span>
+      </label>
+      <label class="chip toggle">
+        <input
+          v-model="localFilters.onlyUrgent"
+          type="checkbox"
+          :disabled="loading"
+        />
+        <span>Closing soon (≤ 10d)</span>
+      </label>
+      <label class="chip toggle">
+        <input
+          v-model="localFilters.onlyNew"
+          type="checkbox"
+          :disabled="loading"
+        />
+        <span>New this week</span>
+      </label>
+      <label class="chip toggle">
+        <input
+          v-model="localFilters.hasRfpDocs"
+          type="checkbox"
+          :disabled="loading"
+        />
+        <span>Has RFP docs</span>
+      </label>
+      <label class="chip toggle">
+        <input
+          v-model="localFilters.hasRestrictions"
+          type="checkbox"
+          :disabled="loading"
+        />
+        <span>Has restrictions</span>
+      </label>
+    </div>
 
     <div class="panel-row">
       <div class="field">
@@ -274,57 +317,16 @@ const stateOptions = [
           placeholder="e.g. 10"
         />
       </div>
-      <div class="toggle-row">
-        <label class="chip">
-          <input
-            v-model="localFilters.showSavedOnly"
-            type="checkbox"
-            :disabled="loading"
-            @change="(event) => emit('toggle-saved', event.target.checked)"
-          />
-          <span>Saved only</span>
-        </label>
-        <label class="chip">
-          <input
-            v-model="localFilters.onlyUrgent"
-            type="checkbox"
-            :disabled="loading"
-          />
-          <span>Closing soon (≤ 10d)</span>
-        </label>
-        <label class="chip">
-          <input
-            v-model="localFilters.onlyNew"
-            type="checkbox"
-            :disabled="loading"
-          />
-          <span>New this week</span>
-        </label>
-        <label class="chip">
-          <input
-            v-model="localFilters.hasRfpDocs"
-            type="checkbox"
-            :disabled="loading"
-          />
-          <span>Has RFP docs</span>
-        </label>
-        <label class="chip">
-          <input
-            v-model="localFilters.hasRestrictions"
-            type="checkbox"
-            :disabled="loading"
-          />
-          <span>Has restrictions</span>
-        </label>
-      </div>
     </div>
   </section>
 </template>
 
 <style scoped>
 .panel {
-  padding: 14px 16px;
-  margin-bottom: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .panel-header {
@@ -332,7 +334,6 @@ const stateOptions = [
   justify-content: space-between;
   align-items: flex-start;
   gap: 16px;
-  margin-bottom: 8px;
 }
 
 .panel-header h2 {
@@ -355,6 +356,13 @@ const stateOptions = [
   margin-top: 10px;
 }
 
+.chip-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -374,6 +382,7 @@ select {
   border-radius: 8px;
   font-size: 14px;
   background: #fff;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
 input:disabled,
@@ -382,16 +391,15 @@ select:disabled {
   background: #f8fafc;
 }
 
-.search input {
-  width: 100%;
+input:focus,
+select:focus {
+  border-color: #6366f1;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
 }
 
-.toggle-row {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-start;
+.search input {
+  width: 100%;
 }
 
 .chip {
@@ -399,11 +407,16 @@ select:disabled {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: #f1f5f9;
+  background: #f8fafc;
   border-radius: 999px;
   border: 1px solid #e2e8f0;
   font-weight: 600;
   cursor: pointer;
+}
+
+.chip.toggle {
+  background: #eef2ff;
+  border-color: #dfe3ff;
 }
 
 .chip input {
@@ -414,30 +427,5 @@ select:disabled {
 .buttons {
   display: flex;
   gap: 10px;
-}
-
-button {
-  border-radius: 8px;
-  padding: 10px 14px;
-  border: 1px solid transparent;
-  cursor: pointer;
-  font-weight: 700;
-}
-
-button.ghost {
-  background: #fff;
-  border-color: #e2e8f0;
-  color: #0f172a;
-}
-
-button.primary {
-  background: #2563eb;
-  color: #fff;
-  border-color: #1d4ed8;
-}
-
-button:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
 }
 </style>

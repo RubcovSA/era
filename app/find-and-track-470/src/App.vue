@@ -30,6 +30,20 @@ const derivedStats = computed(() => ({
   visible: visibleItems.value.length,
 }));
 
+const urgencyStats = computed(() => {
+  let closingSoon = 0;
+  let newCount = 0;
+  let overdue = 0;
+
+  for (const item of visibleItems.value) {
+    if (item.closingSoon) closingSoon += 1;
+    if (item.isNew) newCount += 1;
+    if (item.daysRemaining != null && item.daysRemaining < 0) overdue += 1;
+  }
+
+  return { closingSoon, newCount, overdue };
+});
+
 const visibleItems = computed(() => {
   const query = (filters.value.search || '').toLowerCase();
   return items.value
@@ -173,126 +187,245 @@ function normalizeRecord(raw) {
 </script>
 
 <template>
-  <div class="page">
-    <header class="hero">
-      <div>
-        <p class="eyebrow">E-Rate • Form 470</p>
-        <h1>Find and track new RFPs fast</h1>
-        <p class="lede">
-          Filter USAC’s open data, scan deadlines, and bookmark the Form 470s
-          you care about. Everything stays in your browser.
-        </p>
-        <div class="meta">
-          <span class="pill new">Client-side only</span>
-          <span class="pill new">Uses USAC Open Data</span>
-          <span class="pill soon">Local watchlist</span>
-        </div>
-      </div>
-      <div class="hero-stats card">
-        <div class="stat">
-          <div class="stat-label">Visible</div>
-          <div class="stat-value">{{ derivedStats.visible }}</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">Total loaded</div>
-          <div class="stat-value">{{ derivedStats.total }}</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">Saved</div>
-          <div class="stat-value">{{ derivedStats.saved }}</div>
-        </div>
-      </div>
-    </header>
+  <main class="app-shell">
+    <div class="page">
+      <section class="hero card">
+        <div class="hero-content">
+          <p class="eyebrow">Idea Incubator • Form 470 workspace</p>
+          <h1>Find and track new RFPs fast</h1>
+          <p class="lede">
+            A calmer, insight-first surface inspired by the Idea Incubator UI.
+            Filter USAC data, scan deadlines, and keep a private watchlist
+            entirely in your browser.
+          </p>
 
-    <FiltersPanel
-      :filters="filters"
-      :loading="loading"
-      @apply="handleFiltersChange"
-      @toggle-saved="toggleSavedOnly"
-    />
+          <div class="meta-row">
+            <span class="pill new">Client-side only</span>
+            <span class="pill success">Uses USAC Open Data</span>
+            <span class="pill soon">Deadline-aware cards</span>
+          </div>
 
-    <RfpTable
-      class="card"
-      :items="visibleItems"
-      :loading="loading"
-      :error-message="errorMessage"
-      :watchlist="watchlist"
-      @refresh="loadData"
-      @toggle-watch="toggleWatchlist"
-    />
-  </div>
+          <div class="hero-actions">
+            <button class="btn primary" :disabled="loading" @click="loadData">
+              {{ loading ? 'Refreshing…' : 'Refresh feed' }}
+            </button>
+            <button class="btn ghost" @click="toggleSavedOnly">
+              {{ filters.showSavedOnly ? 'Show all filings' : 'Show saved only' }}
+            </button>
+            <span class="hint">Filters persist locally between sessions.</span>
+          </div>
+        </div>
+
+        <div class="hero-stats">
+          <div class="stat-card">
+            <div class="stat-label">Visible now</div>
+            <div class="stat-value">{{ derivedStats.visible }}</div>
+            <div class="stat-sub">After your current filters</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total loaded</div>
+            <div class="stat-value">{{ derivedStats.total }}</div>
+            <div class="stat-sub">Latest pull from USAC</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Saved list</div>
+            <div class="stat-value">{{ derivedStats.saved }}</div>
+            <div class="stat-sub">Lives only in your browser</div>
+          </div>
+          <div class="stat-card accent">
+            <div class="stat-label">Closing soon</div>
+            <div class="stat-value">{{ urgencyStats.closingSoon }}</div>
+            <div class="stat-chip">{{ urgencyStats.newCount }} new this week</div>
+          </div>
+        </div>
+      </section>
+
+      <div class="workspace-grid">
+        <FiltersPanel
+          class="card filter-card"
+          :filters="filters"
+          :loading="loading"
+          @apply="handleFiltersChange"
+          @toggle-saved="toggleSavedOnly"
+        />
+
+        <section class="card callout">
+          <h3>Stay on top of live filings</h3>
+          <p>
+            Saved items never leave your device. Use search + state + category to
+            keep the visible set tight, then star what matters. Refresh pulls a fresh
+            batch directly from USAC Open Data.
+          </p>
+          <div class="callout-tags">
+            <span class="pill success">{{ derivedStats.saved }} saved</span>
+            <span class="pill soon">{{ urgencyStats.closingSoon }} closing soon</span>
+            <span class="pill new">{{ urgencyStats.newCount }} new this week</span>
+          </div>
+        </section>
+      </div>
+
+      <RfpTable
+        class="card table-card"
+        :items="visibleItems"
+        :loading="loading"
+        :error-message="errorMessage"
+        :watchlist="watchlist"
+        @refresh="loadData"
+        @toggle-watch="toggleWatchlist"
+      />
+    </div>
+  </main>
 </template>
 
 <style scoped>
 .hero {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 24px;
-  margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 18px;
+  padding: 26px;
+  background: radial-gradient(circle at 12% 20%, #eef2ff, transparent 40%),
+    radial-gradient(circle at 80% 10%, #e0f2fe, transparent 35%),
+    var(--surface);
 }
 
-.hero h1 {
-  margin: 6px 0 10px;
-  font-size: 30px;
+.hero-content h1 {
+  margin: 8px 0 12px;
+  font-size: 32px;
+  letter-spacing: -0.02em;
 }
 
-.hero .lede {
-  max-width: 640px;
-  color: #334155;
-  margin: 0 0 10px;
+.hero-content .lede {
+  max-width: 720px;
+  color: var(--muted);
+  margin: 0 0 14px;
 }
 
 .eyebrow {
-  font-weight: 600;
-  color: #2563eb;
+  font-weight: 700;
+  color: var(--primary);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 12px;
   margin: 0;
 }
 
-.meta {
+.meta-row {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  margin: 12px 0;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hero-actions .hint {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .hero-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0;
-  padding: 10px 14px;
-  min-width: 260px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
 }
 
-.stat {
-  padding: 8px 10px;
-  border-left: 1px solid #e2e8f0;
+.stat-card {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fff, #f8fafc);
 }
 
-.stat:first-child {
-  border-left: none;
+.stat-card.accent {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), #ffffff);
+  border-color: #c7d2fe;
 }
 
 .stat-label {
-  font-size: 12px;
-  color: #64748b;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 4px;
 }
 
 .stat-value {
-  font-size: 22px;
-  font-weight: 700;
-  color: #0f172a;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
 }
 
-@media (max-width: 960px) {
-  .hero {
-    flex-direction: column;
-  }
+.stat-sub {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
 
-  .hero-stats {
-    width: 100%;
+.stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  margin-top: 8px;
+  background: #eef2ff;
+  color: #312e81;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 16px;
+  margin: 18px 0 12px;
+  align-items: start;
+}
+
+.callout {
+  padding: 18px 20px;
+  background: linear-gradient(145deg, #f8fafc, #ffffff);
+}
+
+.callout h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.callout p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.callout-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.table-card {
+  margin-top: 12px;
+}
+
+@media (max-width: 1080px) {
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
   }
 }
 </style>
